@@ -1,4 +1,3 @@
-# import the necessary packages
 from flask import Flask, render_template, redirect, url_for, request,session,Response
 from werkzeug.utils import secure_filename
 from supportFile import *
@@ -13,7 +12,7 @@ import sqlite3
 from datetime import datetime
 from autocorrect import Speller
 import json
-from suicide import *
+from stress import *
 
 interest=''
 problem=''
@@ -199,23 +198,48 @@ def bot():
 
 @app.route("/get")
 def get_bot_response():
-    global count,userResponse
+    import random
+    global count, userResponse
 
     user_response = spell(request.args.get('msg'))
-    user_response=user_response.lower()
+    user_response = user_response.lower()
     userResponse.append(user_response)
-    botResponse = questions[count]
-    count = count + 1
-    if(count > 19):
-        tendency = analyze_responses(userResponse)
-        video_url = '<a href="https://www.youtube.com/watch?v=5YoTP_fO4FI" target="_blank">click here to watch helpful video</a>'
+
+    if count < len(questions):
+        botResponse = questions[count]
+        count += 1
+    else:
+        # Custom risk analysis logic
+        yes_count = sum(1 for resp in userResponse if 'yes' in resp.lower())
         
-        if(tendency != 'Low Risk'):
-            botResponse = f'Stress Tendency: {tendency} - {video_url}'
+        if yes_count >= 6:
+            tendency = 'High Risk'
+        elif yes_count >= 1:
+            tendency = 'Moderate Risk'
         else:
-            botResponse = '<div class="text-success"> No Risk </div>'
+            tendency = 'Low Risk'
+
+        # Random helpful links
+        resource_links = [
+            '<a href="https://www.youtube.com/watch?v=5YoTP_fO4FI" target="_blank">Watch calming video</a>',
+            '<a href="https://youtu.be/191v_vwDNXU?si=WWPM3cpwF95BpN37" target="_blank">Stress relief video</a>',
+            '<a href="https://youtu.be/76zB_KEGomY?si=kbP-Nv_qZv2sSakM" target="_blank">Meditation guidance</a>',
+            '<a href="https://www.nomoreifsorbuts.com/my-stress-story/" target="_blank">Read a stress recovery story</a>'
+        ]
+        selected_link = random.choice(resource_links)
+
+        if tendency != 'Low Risk':
+            botResponse = f'<div class="text-warning">Stress Tendency: {tendency}</div> - {selected_link}'
+        else:
+            botResponse = '<div class="text-success">Stress Tendency: Low Risk – You are doing well!</div>'
+        
+        # Reset
         count = 0
+        userResponse = []
+
     return botResponse
+
+
 
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
